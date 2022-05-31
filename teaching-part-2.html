@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Teaching Multivariable Math in DASC 2594</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="John Tipton" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Teaching Multivariable Math in DASC 2594
+]
+.author[
+### John Tipton
+]
+.institute[
+### The University of Arkansas
+]
+.date[
+### 2022/06/01 (updated: 2022-05-27)
+]
+
+---
+
+
+&lt;style type="text/css"&gt;
+.remark-slide-content {
+  font-size: 18px;
+  padding: 20px 80px 20px 80px;
+}
+.remark-code, .remark-inline-code {
+  background: #f0f0f0;
+}
+.remark-code {
+  font-size: 14px;
+}
+.huge .remark-code { /*Change made here*/
+  font-size: 200% !important;
+}
+.very-large .remark-code { /*Change made here*/
+  font-size: 150% !important;
+}
+.large .remark-code { /*Change made here*/
+  font-size: 125% !important;
+}
+.small .remark-code { /*Change made here*/
+  font-size: 75% !important;
+}
+
+.very-small .remark-code { /*Change made here*/
+  font-size: 50% !important;
+}
+.tiny .remark-code { /*Change made here*/
+  font-size: 40% !important;
+}
+&lt;/style&gt;
+
+
+
+
+# Labs
+
+- Making the concepts real and concrete
+
+
+Recall that we first introduced a basis using polynomials (e.g., the functions 1, `\(x\)`, and `\(x^2\)` span the set of quadratic polynomials). We can extend this idea to fit smooth functions by expanding data using transformations of the input variables. Consider the data below which show a plot of sales over two years time (24 months) where the true trend process `trend` is assumed to be known. 
+
+---
+
+# The basis
+
+First, we load the data and generate a spline basis expansion of the variable `time`. This can be done with the `splines` library where the functional response will be a linear combination of the basis functions
+
+
+```r
+library(splines)
+library(ggfortify) # for the basis plotting
+sales &lt;- read_csv(here::here("data", "sales.csv"))
+autoplot(bs(sales$time, df = 12))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-2-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# The data
+
+
+```r
+sales &lt;- read_csv(here::here("data", "sales.csv"))
+p &lt;- ggplot(sales, aes(x = time, y = sales)) + 
+  geom_point() +
+  geom_line(aes(x = time, y = trend))
+p
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-3-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Fitting a model
+
+For example, a linear model can be fit to the `sales_data` using
+
+
+
+and the predictions from the linear model `mod` can be generated and plotted using `predict()` as
+
+
+```r
+sales %&gt;%
+  mutate(pred_lm = predict(mod)) %&gt;%
+  ggplot(aes(x = time, y = sales)) +
+  geom_point() +
+  geom_line(aes(x = time, y = pred_lm), color = "red") +
+  geom_line(aes(x = time, y = trend))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-5-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Fitting a model
+
+Notice that the linear function does not capture the variation in seasonal trend in the data (although it does capture the long-term trend). Rather than forming a basis over a vector space, we will construct a basis over a more abstract function space where the dimension of the function space. This will give us a more intuitive understanding of a "basis". Because the basis of functions are just wiggles, as the dimension of the basis function space increases, the set of functions in the span of the basis increases (the possible functions that can be created get more and more flexible/"wiggly").
+
+---
+
+
+# Fitting a model
+
+The functional basis expansion we will use are called **b-splines** and can be created using the `bs()` function in `R` and the dimension of the function space is determined by the "degrees of freedom" parameter `df`. For example, the model with `df=4` can be fit and plotted and the predictions from the b-spline model `mod_bs` can be generated and plotted using `predict()` as 
+
+.small[
+
+```r
+mod_bs &lt;- lm(sales ~ bs(time, df = 4), data = sales)
+
+sales %&gt;%
+  mutate(pred_bs = predict(mod_bs)) %&gt;%
+  ggplot(aes(x = time, y = sales)) +
+  geom_point() +
+  geom_line(aes(x = time, y = pred_bs), color = "red") +
+  geom_line(aes(x = time, y = trend))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-6-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Examining the Math
+
+Let's take a close look under the hood of these functions. First, lets looks the the **design matrix** `\(\mathbf{X}\)` which is created using 4 degrees of freedom using `df = 4` option in the b-spline function `bs()` that generates the b-spline basis.
+
+
+```r
+X &lt;- model.matrix(~ bs(time, df = 4), data = sales)
+```
+
+Just like with linear regression, the ordinary least squares solution is given by 
+
+`\begin{align*}
+\hat{\boldsymbol{\beta}} = (\mathbf{X}'\mathbf{X})^{-1} \mathbf{X} \mathbf{y}
+\end{align*}`
+
+
+```r
+y &lt;- sales$sales
+beta_hat &lt;- solve(t(X) %*% X) %*% t(X) %*% y
+```
+
+and the predicted values at the observed locations are given by `\(\mathbf{X}\hat{\boldsymbol{\beta}}\)` with the fitted functional response shown below.
+
+
+```r
+preds &lt;- X %*% beta_hat
+```
+
+---
+
+# Examining the Math
+
+Adding the fitted b-spline mean response to the data with `df=4` to the plot of the data in the ggplot object `p`.
+
+
+```r
+p + geom_line(aes(time, y = preds), color = "blue", lty = 2)
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-10-1.png" width="60%" style="display: block; margin: auto;" /&gt;
+
+Notice that the fitted response in blue is underfitted relative to the true mean response shown in black.
+
+---
+
+# Fitting the Model
+
+Rather than having to fit this "by hand," we can use the `lm()` function like so and save the fitted model to an object:
+
+
+```r
+model_4 &lt;- lm(y ~ X - 1)
+```
+
+where the `-1` in the formula `y ~ X - 1` tells the `lm()` function that the y-intercept has already been included in the design matrix `X`.
+
+To generate predictions from the `lm()` model, you can use the `predict()` function like so and save the variable in the object `preds` using
+
+```r
+preds &lt;- predict(model_4)
+```
+
+---
+
+# Fitting the model
+
+
+```r
+sales %&gt;%
+  mutate(preds = preds) %&gt;%
+  ggplot(aes(x = time, y = sales)) +
+  geom_point() +
+  geom_line(aes(x = time, y = preds), color = "red") +
+  geom_line(aes(x = time, y = trend))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-13-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Question 1: Part a
+
+For this lab, change the degrees of freedom `df` to `df = 8` and `df = 18` and explore what happens as compared to `df = 4`. Describe what happens to the rank of the design matrix `\(\mathbf{X}\)` and the how the rank influences the fitted response function. 
+
+1) To do this, first create 3 model matrices. First, create `X4` using `df=4` in the `model.matrix()` function, `X8` using `df=8` in the `model.matrix()` function, and `X18` using `df = 18` in the `model.matrix()` function.
+
+2) Using the matrices `X4`, `X8`, and `X18`, determine the rank of each of these matrices using the `qr()` function and extracting the variable `rank`
+
+3) Fit the model using `lm()` to each of the matrices `X4`, `X8`, and `X18` and save these as `mod_4`, `mod_8`, and `mod_18`.
+
+4) Using the fitted models `mod_4`, `mod_8`, and `mod_18`, generate predictions `preds_4`, `preds_8`, and `preds_18` using the `predict()` function.
+
+5) Plot the observed data in `sales` with the predicted lines from `preds_4`, `preds_8`, and `preds_18`. Make the line for `preds_4` red, `preds_8` blue, and `preds_18` orange. 
+
+
+---
+
+
+&lt;!-- Solution --&gt;
+
+# Question 1: Part a (Solution)
+
+
+
+```r
+# df = 4, rank = 5
+X4 &lt;- model.matrix(~ bs(time, df = 4), data = sales)
+qr(X4)$rank
+```
+
+```
+## [1] 5
+```
+
+```r
+mod_4 &lt;- lm(y ~ X4 - 1)
+preds_4 &lt;- predict(mod_4)
+
+# df = 8, rank = 9
+X8 &lt;- model.matrix(~ bs(time, df = 8), data = sales)
+qr(X8)$rank
+```
+
+```
+## [1] 9
+```
+
+```r
+mod_8 &lt;- lm(y ~ X8 - 1)
+preds_8 &lt;- predict(mod_8)
+
+# df = 18, rank = 19
+X18 &lt;- model.matrix(~ bs(time, df = 18), data = sales)
+qr(X18)$rank
+```
+
+```
+## [1] 19
+```
+
+```r
+mod_18 &lt;- lm(y ~ X18 - 1)
+preds_18 &lt;- predict(mod_18)
+```
+
+
+---
+
+# Question 1: Part a (Solution)
+
+.small[
+
+```r
+sales %&gt;%
+  mutate(preds_4 = preds_4,
+         preds_8 = preds_8, 
+         preds_18 = preds_18) %&gt;%
+  ggplot(aes(x = time, y = sales)) +
+  geom_point() +
+  geom_line(aes(x = time, y = preds_4), color = "red") + 
+  geom_line(aes(x = time, y = preds_8), color = "blue") +
+  geom_line(aes(x = time, y = preds_18), color = "orange") +
+  geom_line(aes(x = time, y = trend))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-15-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+]
+
+The rank of `X` is `df+1`. Increasing the `df` increases the wiggliness of the fit to the data.
+
+
+
+
+
+
+
+
+---
+
+
+# Question 1: Part b
+
+
+Try increasing `df` to exactly equal the number of observations minus 1. Describe the fit of the model to the data. Generate the design matrix `X` and plot the predictions `preds` using this design matrix. Why would this not be a good idea to fit this model in practice? (think about how this model would fit new data not yet seen by the model) 
+
+
+---
+
+# Question 1: Part b (Solution)
+&lt;!-- Solution --&gt;
+
+
+```r
+length(y)
+```
+
+```
+## [1] 24
+```
+
+```r
+# df = 24-1, rank = 24
+X &lt;- model.matrix(~ bs(time, df = 23), data = sales)
+qr(X)$rank
+```
+
+```
+## [1] 24
+```
+
+```r
+# generate new predictions
+preds &lt;- predict(lm(y ~ X - 1))
+```
+
+The model now fits the data perfectly! Because the number of free variables in the system of equation is equal to the number of equations (data points), there is a perfect fit. This would not be a good model because it will not fit new, unseen data well.
+
+
+
+
+---
+
+
+# Question 1: Part b (Solution)
+
+.small[
+
+```r
+# plot new predictions
+sales %&gt;%
+  mutate(preds = preds) %&gt;%
+  ggplot(aes(x = time, y = sales)) +
+  geom_point() +
+  geom_line(aes(x = time, y = preds), color = "red") + 
+  geom_line(aes(x = time, y = trend))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-17-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+]
+
+
+
+
+
+
+
+
+
+
+
+---
+
+# Question 1: Part c 
+
+
+
+What about increasing `df` to a number larger than the number of months (24) -- what happens when you fit the model with `lm` and get the parameter estimates for the coefficients `\(\hat{\beta}\)`? Knowing what you know about how the estimates `\(\hat{\beta}\)` are being calculated, what explains this error?
+
+
+---
+
+# Question 1: Part c (Solution)
+
+&lt;!-- Solution --&gt;
+
+```r
+length(y)
+```
+
+```
+## [1] 24
+```
+
+```r
+# df = 24-1, rank = 24
+X &lt;- model.matrix(~ bs(time, df = 25), data = sales)
+qr(X)$rank
+```
+
+```
+## [1] 24
+```
+
+```r
+# generate new predictions
+preds &lt;- predict(lm(y ~ X - 1))
+```
+
+The model starts to fail dramatically. There are a number of free variables in the system of equations and these cause poor model fits
+
+
+---
+
+# Question 1: Part c (Solution)
+
+
+```r
+# plot new predictions
+sales %&gt;%
+  mutate(preds = preds) %&gt;%
+  ggplot(aes(x = time, y = sales)) +
+  geom_point() +
+  geom_line(aes(x = time, y = preds), color = "red") + 
+  geom_line(aes(x = time, y = trend))
+```
+
+&lt;img src="teaching-part-2_files/figure-html/unnamed-chunk-19-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+
+
+
+
+
+
+
+
+
+
+---
+
+# Question 1: Part d (Solution)
+
+
+
+
+
+
+
+Think about `\(df = n-1\)` as a system of equations with `\(n\)` equations (rows) and `\(df\)` unknowns (columns) with each vector in the system of equations being linearly independent if `\(df &lt; n-1\)`. How many solutions does this system of equation have when `\(df = 10\)`? What about when `df = n`? Use the plots generated above (parts a-c) to answer this question.
+
+---
+
+# Question 1: Part d (Solution)
+
+
+&lt;!-- Solution --&gt;
+
+```r
+X &lt;- model.matrix(~ bs(time, df = 10), data = sales)
+dim(X)
+```
+
+```
+## [1] 24 11
+```
+
+```r
+qr(X)$rank
+```
+
+```
+## [1] 11
+```
+
+```r
+# rref(X)
+```
+
+When `df=10`, there are no free variables and the rank of the design matrix is `df+1` which is equal to the number of columns of `X`. Thus, the columns of `X` are linearly independent (you could see this if you used `rref()` on the matrix `X` as there will be a pivot in every column. Thus the solution will be unique. 
+
+
+---
+
+# Question 1: Part d (Solution)
+
+
+
+```r
+X &lt;- model.matrix(~ bs(time, df = length(y)), data = sales)
+dim(X)
+```
+
+```
+## [1] 24 25
+```
+
+```r
+qr(X)$rank
+```
+
+```
+## [1] 24
+```
+
+```r
+# rref(X)
+```
+
+When `df = n`, there is a free variable and the rank of the design matrix is `n` which is not equal to the number of columns of `X` which is `n+1`. Thus, the columns of `X` are linearly dependent (you could see this if you used `rref()` on the matrix `X` as there will not be a pivot in every column. Thus the solution will be not be unique. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"navigation": {
+"scroll": false
+},
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
