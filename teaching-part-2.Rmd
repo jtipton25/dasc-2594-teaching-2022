@@ -56,9 +56,70 @@ library(tidyverse)
 ```
 
 
+# The dasc2594 package 
+
+
+* Goals
+    * Make it easier for students to apply concepts in the class
+    * Make it easier to learn fundamental concepts
+    * Make it easier for me to develop homework questions (see HW-06-fall-2021.Rmd for example)
+
+
+---
+
+# The dasc2594 package -- Key functions
+
+* Row operations
+    * `row_add()`
+    * `row_multiply()`
+    * `row_swap()`
+    * `rref()`
+    * `
+    
+* Visualizations
+    * `plot_change_basis()`
+    * `plot_tangent_plane()`
+    * `plot_transformation()`
+    
+    
+---
+
+# The dasc2594 package -- Key functions
+
+* Write matrices and systems of equations out to latex
+    * `array_to_latex()`
+    * `array_to_matrix_equation()`
+    * `array_to_system()`
+    * `array_to_vector_equation()`
+    * `latex_equation_to_png()`
+    
+* Check matrix properties
+    * `is_basis()`
+    * `is_consistent()`
+    * `is_invertible()`
+    * `is_unique()`
+    * `is_valid_row()`
+    
+* Generate random examples
+    * `elementary_matrix()`
+    * `make_basis()`
+    * `make_eigen()`
+    * `make_system_of_equations()`
+    
+
+---
+
+
+    
+
+
+
 # Labs
 
 - Making the concepts real and concrete
+
+
+- Watch first 11 minutes on your own time [https://www.youtube.com/watch?v=aVwxzDHniEw](https://www.youtube.com/watch?v=aVwxzDHniEw)
 
 
 Recall that we first introduced a basis using polynomials (e.g., the functions 1, $x$, and $x^2$ span the set of quadratic polynomials). We can extend this idea to fit smooth functions by expanding data using transformations of the input variables. Consider the data below which show a plot of sales over two years time (24 months) where the true trend process `trend` is assumed to be known. 

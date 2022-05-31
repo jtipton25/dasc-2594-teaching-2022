@@ -61,26 +61,44 @@ library(tidyverse)
 
 * Lecture notes at [https://jtipton25.github.io/multivariable-math/](https://jtipton25.github.io/multivariable-math/)
 
+* R package available at [https://github.com/jtipton25/dasc2594](https://github.com/jtipton25/dasc2594)
+
+---
+
+# Review HWs and Labs
+
+* Access for materials
+
+* Open up examples from OneDrive
+
+    * Class Scripts
+    * Exams
+    * Homeworks (Gradescope)
+    * Lecture Notes
+    * Labs (Gradescope)
+    * Exercises and Quizzes (In development)
+
 ---
 
 # Guiding principles
 
 * Teach the fundamental multivariable math needed for data science
 
-* Focus on the math and concepts, leave the computation to the computer
+* Focus on the higher order math and concepts, leave the computation to the computer
 
 * Focus on the key ideas needed for data science from linear algebra and (multivariable) calculus III 
     * Matrix and vector operations
     * Solving systems of equations
     * Understanding rank and invertibility
     * Matrix factorizations
-    * Gradients
+    * Gradients and Geometry
 
 * Omit topics in traditional multivariable calculus courses
-    * cross-products
+    * curl and divergence
     * line integrals
     * multiple integration over irregular boundaries
     * vector fields
+    * Green's and Stokes' Theorem 
 
 ---
 
@@ -421,10 +439,64 @@ data.frame(timings, n) %>%
 
 # Solving systems of equations
 
+Using `R`, plot the following systems of equations. Based on these plots, are the equations consistent? If the equations are consistent, is the solution unique?
+
+**Hint:** For each equation, define a grid for `x` using a sequence of numbers. Then, evaluate the equation for `y` for each value of `x`. Put these into a `data.frame` and plot using `ggplot2`.
+
+
+$$
+\begin{alignedat}{3}
+x & {}-{} & y & {}={} & 2 \\\\
+2x & {}+{} & 2y & {}={} & 1
+\end{alignedat}
+$$
+
+
+---
+
+# Solving systems of equations (Solution)
+
+```{r, fig.width = 6, fig.height = 4, fig.align = 'center', message = FALSE}
+x <- seq(-10, 10, length.out = 1000)
+y1 <- x - 2
+y2 <- 0.5 - x
+dat <- data.frame(x = c(x, x), y = c(y1, y2),
+                  equation = factor(rep(c(1, 2), each = 1000)))
+
+ggplot(dat, aes(x = x, y = y, color = equation)) +
+    geom_line()
+```
+
+Because the lines intersect at a single point, the system of equations is consistent with a unique solution.
 
 
 
+---
 
+
+
+# Solving systems of equations
+
+
+For the following matrix equations, are the system of equations consistent? If so, is the solution unique? For each matrix equations, how many pivot columns are in the matrix $\mathbf{A}$?
+
+$\mathbf{A} = \begin{pmatrix} 3 & -2 & 3 \\ -2 & 4 & 1 \\ 3 & 2 & 7 \\ 1 & 6 & 8 \end{pmatrix}$ and $\mathbf{b} = \begin{pmatrix} 2 \\ -1 \\ 4 \\ 3 \end{pmatrix}$
+
+
+---
+
+
+# Solving systems of equations (Solution)
+
+```{r}
+A <- matrix(c(3, -2, 3, 1, -2, 4, 2, 6, 3, 1, 7, 8), 4, 4)
+b <- c(2, -1, 3, 4)
+
+dasc2594::rref(cbind(A, b))
+dasc2594::rref(A)
+```
+
+The system of equations is inconsistent because there is a pivot in the last column. There are three pivot columns in the matrix $\mathbf{A}$.
 
 
 

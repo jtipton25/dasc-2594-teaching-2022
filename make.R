@@ -9,3 +9,8 @@ library(tinytex)
 # file to compile all .Rmd files to pdf
 library(rmarkdown)
 library(pagedown)
+
+render(here::here("teaching-part-1.Rmd"))
+chrome_print(here::here("teaching-part-1.html"), here::here("teaching-part-1.pdf"))
+render(here::here("teaching-part-2.Rmd"))
+chrome_print(here::here("teaching-part-2.html"), here::here("teaching-part-2.pdf"))
