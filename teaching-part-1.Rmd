@@ -248,11 +248,11 @@ A[3, ] <- A[3, ] - A[2, ]
 ```{r}
 A <- matrix(1:9, 3, 3)
 add_rows <- function(A, row_1, row_2, a) {
-  A[row_1] <- A[row_1] + a * A[row_2]
+  A[row_1, ] <- A[row_1, ] + a * A[row_2, ]
   return(A)
 }
 
-add_rows(A, row_1 = 3, row_2 = 3, a = 2)
+add_rows(A, row_1 = 3, row_2 = 2, a = 2)
 ```
 
 ---
@@ -266,10 +266,10 @@ add_rows <- function(A, row_1, row_2, a) {
   if ((row_1 < 1) | row_1 > nrow(A)) {
     stop("row_1 must be a valid row")
   }
-  A[row_1] <- A[row_1] + a * A[row_2]
+  A[row_1, ] <- A[row_1, ] + a * A[row_2, ]
   return(A)
 }
-add_rows(A, row_1 = 4, row_2 = 3, a = 2)
+add_rows(A, row_1 = 4, row_2 = 2, a = 2)
 ```
 
 ---
